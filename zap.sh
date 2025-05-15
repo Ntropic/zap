@@ -100,8 +100,18 @@ cd() {
 
 # Tab completion for cd
 _cd() {
-    [[ -f "$ZAP_CONFIG" ]] && source "$ZAP_CONFIG"
     local cur="${COMP_WORDS[COMP_CWORD]}"
-    COMPREPLY=($(compgen -W "${!cd_keywords[@]}" -- "$cur"))
+    local keys=()
+
+    # Extract keys from the config file manually
+    while IFS= read -r line; do
+        if [[ $line =~ \[\"([^\"]+)\"\] ]]; then
+            keys+=("${BASH_REMATCH[1]}")
+        fi
+    done < <(awk '/^declare -A cd_keywords=/{found=1; next} found && /^\)/{exit} found' "$HOME/.cd_keywords.sh")
+
+    COMPREPLY=($(compgen -W "${keys[*]}" -- "$cur"))
 }
+
 complete -o bashdefault -o default -o nospace -F _cd cd
+
